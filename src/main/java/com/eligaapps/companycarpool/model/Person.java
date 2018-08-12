@@ -47,7 +47,31 @@ public class Person {
 	@NotNull
 	private ROLE role;
 	
+	@NotNull
+	private String activationKey;
+	
+	@NotNull
+	private boolean active=false;
+	
 	public Person() {
+	}
+	
+	
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
+
+	public String getActivationKey() {
+		return activationKey;
+	}
+
+	public void setActivationKey(String activationKey) {
+		this.activationKey = activationKey;
 	}
 
 	public String getPassword() {

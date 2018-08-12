@@ -21,10 +21,14 @@ public class CarpoolSuccessfulAuthenticationHandler extends SimpleUrlAuthenticat
 	@Autowired
 	private UserRepository carpoolRepository;
 
+	@Autowired
+	private DOSDetector dosDetector;
+
 	@Override
 	public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
 			Authentication authentication) throws IOException, ServletException {
 		Person person = carpoolRepository.findByEmail(authentication.getPrincipal().toString());
+		dosDetector.clearIP(request.getRemoteAddr());
 		person.setPassword(null);
 		response.setStatus(200);
 		Gson gson=new Gson();

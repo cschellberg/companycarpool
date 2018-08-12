@@ -28,6 +28,7 @@ public class CarpoolAuthenticationProvider implements AuthenticationProvider {
 	
 	@Autowired
 	private UserRepository userRepository;
+	
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {

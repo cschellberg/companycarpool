@@ -15,11 +15,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.eligaapps.companycarpool.model.*;
 import com.eligaapps.companycarpool.repository.UserRepository;
 import com.eligaapps.companycarpool.security.CryptoConverter;
+import com.eligaapps.companycarpool.types.ROLE;
 
 @Controller
 public class PersonController {
@@ -40,11 +42,26 @@ public class PersonController {
 		}
 		return retList;
 	}
-	
+
 	@RequestMapping(value = "/admin/person/{email:.+}", method = RequestMethod.GET)
 	public @ResponseBody Person get(@PathVariable("email") String email) {
 		Person person = carpoolRepository.findByEmail(email);
 		return person;
+	}
+
+	@RequestMapping(value = "/changePassword", method = RequestMethod.POST)
+	public @ResponseBody Result changePassor(@RequestParam String email, @RequestParam String currentPassword,
+			@RequestParam String newPassword) throws Exception {
+		String encyrptedCurrentPassword = cryptoConverter.convertToDatabaseColumn(currentPassword);
+		Person person = carpoolRepository.findByEmailAndPassword(email, encyrptedCurrentPassword);
+		if (person == null) {
+			return new Result(1, "incorrect password");
+		} else {
+			String encyrptedNewPassword = cryptoConverter.convertToDatabaseColumn(newPassword);
+		    person.setPassword(encyrptedNewPassword);
+		    carpoolRepository.save(person);
+			return new Result(0, "success");
+		}
 	}
 
 	@RequestMapping(value = "/person", method = RequestMethod.POST)
@@ -62,6 +79,10 @@ public class PersonController {
 	public @ResponseBody Result registerUser(@RequestBody Person person) throws Exception {
 		try {
 			encryptPassword(person);
+			person.setRole(ROLE.user);
+			if ( person.equals("dschellberg@gmail.com")){
+				person.setActivationKey("4481186319513391");
+			}
 			carpoolRepository.save(person);
 			return new Result(0, "success");
 		} catch (Exception ex) {
