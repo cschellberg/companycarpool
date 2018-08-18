@@ -13,5 +13,6 @@ import com.eligaapps.companycarpool.model.Person;
 public interface UserRepository extends CrudRepository<Person, Long> {
 	Optional<Person> findById(Long id);
 	Person findByEmailAndPassword(String email, String password);
+	Person findByEmailAndActivationKey(String email, String activationKey);
 	Person findByEmail(String email);
 }

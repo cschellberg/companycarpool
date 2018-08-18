@@ -44,7 +44,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter{
 	protected void configure(HttpSecurity http) throws Exception {
 		http.csrf().disable().authorizeRequests().
 		antMatchers("/admin/**").hasRole(ROLE.admin.toString()).
-		antMatchers("/register").permitAll().anyRequest().authenticated().
+		antMatchers("/register","/activate*","/forgotPassword*").permitAll().anyRequest().authenticated().
 		and().formLogin().defaultSuccessUrl("/companycarpool.html").successHandler(successHandler).
 		failureHandler(failureHandler).and().logout().logoutRequestMatcher(new AntPathRequestMatcher("/logout")).logoutSuccessUrl("/login");
 	}

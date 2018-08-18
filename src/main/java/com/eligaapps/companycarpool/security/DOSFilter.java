@@ -30,7 +30,7 @@ public class DOSFilter implements Filter {
 			throws IOException, ServletException {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		String realPath = httpRequest.getRequestURI().toString().toLowerCase();
-		if (realPath.contains("register")) {
+		if (realPath.contains("register")||realPath.contains("activate")||realPath.contains("forgotPassword")) {
 			if (dosDetector.hasExceededLimitsIncr(request.getRemoteAddr())) {
 				System.out.println("limit exceed");
 				HttpServletResponse httpResponse = (HttpServletResponse) response;

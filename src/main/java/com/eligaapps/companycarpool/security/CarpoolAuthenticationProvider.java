@@ -35,7 +35,7 @@ public class CarpoolAuthenticationProvider implements AuthenticationProvider {
 		String name = authentication.getName();
 		String password = cryptoConverter.convertToDatabaseColumn(authentication.getCredentials().toString());
 		Person person = userRepository.findByEmailAndPassword(name, password);
-		if (person != null) {
+		if (person != null && person.isActive()) {
 			return createToken(name, password, person.getRole().toString());
 		}else {
 			return null;

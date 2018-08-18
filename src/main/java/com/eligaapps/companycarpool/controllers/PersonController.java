@@ -3,12 +3,15 @@ package com.eligaapps.companycarpool.controllers;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import javax.annotation.security.PermitAll;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,17 +25,39 @@ import com.eligaapps.companycarpool.model.*;
 import com.eligaapps.companycarpool.repository.UserRepository;
 import com.eligaapps.companycarpool.security.CryptoConverter;
 import com.eligaapps.companycarpool.types.ROLE;
+import com.eligaapps.companycarpool.utils.MailUtils;
+import com.eligaapps.companycarpool.utils.PasswordGenerator;
 
 @Controller
 public class PersonController {
 	private static Logger logger = LoggerFactory.getLogger(PersonController.class);
 
+	public static String TEST_ACTIVATION_KEY="4481186319513391";
+			
+	@Autowired
+	JavaMailSender javaMailSender; 
+	
 	@Autowired
 	private UserRepository carpoolRepository;
 
 	@Autowired
 	private CryptoConverter cryptoConverter;
+	
+	@Autowired
+	private PasswordGenerator passwordGenerator;
+	
+	@Value("${carpool.host}")
+	private String carpoolHost;
+	
+	@Value("${carpool.port}")
+	private int carpoolPort;
 
+	@Value("${test.email}")
+	private String testEmail;
+	
+	@Value("${test.password}")
+	private String testPassword;
+	
 	@RequestMapping(value = "/admin/person/list", method = RequestMethod.GET)
 	public @ResponseBody List<Person> list() {
 		List<Person> retList = new ArrayList<Person>();
@@ -50,7 +75,7 @@ public class PersonController {
 	}
 
 	@RequestMapping(value = "/changePassword", method = RequestMethod.POST)
-	public @ResponseBody Result changePassor(@RequestParam String email, @RequestParam String currentPassword,
+	public @ResponseBody Result changePassord(@RequestParam String email, @RequestParam String currentPassword,
 			@RequestParam String newPassword) throws Exception {
 		String encyrptedCurrentPassword = cryptoConverter.convertToDatabaseColumn(currentPassword);
 		Person person = carpoolRepository.findByEmailAndPassword(email, encyrptedCurrentPassword);
@@ -59,6 +84,36 @@ public class PersonController {
 		} else {
 			String encyrptedNewPassword = cryptoConverter.convertToDatabaseColumn(newPassword);
 		    person.setPassword(encyrptedNewPassword);
+		    carpoolRepository.save(person);
+			return new Result(0, "success");
+		}
+	}
+	
+	@RequestMapping(value = "/forgotPassword", method = RequestMethod.GET)
+	public @ResponseBody Result forgotPassord(@RequestParam String email) throws Exception {
+		String generatedPassword=passwordGenerator.generatePassword();
+		if ( email.equals(testEmail)){
+			generatedPassword=testPassword;
+		}
+		String encyrptedGeneratedPassword = cryptoConverter.convertToDatabaseColumn(generatedPassword);
+		Person person = carpoolRepository.findByEmail(email);
+		if (person != null) {
+			person.setPassword(encyrptedGeneratedPassword);
+			javaMailSender.send(MailUtils.getForgotPasswordMessage( person.getEmail(), 
+					generatedPassword));
+		    carpoolRepository.save(person);
+			
+		}
+		return new Result(0, "If your email matches our records we will send you a temporary password");
+	}
+	
+	@RequestMapping(value = "/activate", method = RequestMethod.GET)
+	public @ResponseBody Result activate(@RequestParam String email, @RequestParam String activationKey) throws Exception {
+		Person person = carpoolRepository.findByEmailAndActivationKey(email, activationKey);
+		if (person == null) {
+			return new Result(1, "activation incorrect key");
+		} else {
+		    person.setActive(true);
 		    carpoolRepository.save(person);
 			return new Result(0, "success");
 		}
@@ -80,9 +135,15 @@ public class PersonController {
 		try {
 			encryptPassword(person);
 			person.setRole(ROLE.user);
-			if ( person.equals("dschellberg@gmail.com")){
-				person.setActivationKey("4481186319513391");
+			if ( person.getEmail().equals(testEmail)){
+				person.setActivationKey(TEST_ACTIVATION_KEY);
+			} else {
+				UUID uuid = UUID.randomUUID();
+		        String randomUUIDString = uuid.toString();
+				person.setActivationKey(randomUUIDString);
 			}
+			javaMailSender.send(MailUtils.getActivationMessage(carpoolHost, carpoolPort, person.getEmail(), 
+					person.getActivationKey()));
 			carpoolRepository.save(person);
 			return new Result(0, "success");
 		} catch (Exception ex) {

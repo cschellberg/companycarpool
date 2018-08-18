@@ -30,6 +30,8 @@ compile('commons-io:commons-io:2.5')
 	compile('org.springframework.boot:spring-boot-starter-security')
 	compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.postgresql:postgresql:42.2.4')
+    compile('org.springframework.boot:spring-boot-starter-mail')
+    
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 	testCompile('org.springframework.security:spring-security-test')
 	testCompile ('org.apache.httpcomponents:httpclient:4.5.2')
