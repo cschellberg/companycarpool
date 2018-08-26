@@ -134,7 +134,9 @@ public class PersonController {
 	public @ResponseBody Result registerUser(@RequestBody Person person) throws Exception {
 		try {
 			encryptPassword(person);
-			person.setRole(ROLE.user);
+			if ( person.getRole() == null){
+				person.setRole(ROLE.user);
+			}
 			if ( person.getEmail().equals(testEmail)){
 				person.setActivationKey(TEST_ACTIVATION_KEY);
 			} else {

@@ -1,7 +1,9 @@
 package com.eligaapps.companycarpool.types;
 
-public enum ROLE {
-	admin,
+import java.io.Serializable;
+
+public enum ROLE implements Serializable {
+	none,
     user,
-	none
+	admin
 }
