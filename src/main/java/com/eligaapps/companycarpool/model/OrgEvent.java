@@ -16,8 +16,12 @@ import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 @Entity
-@Table(name="org_event")
+@Table(name = "org_event")
 public class OrgEvent {
 
 	@Id
@@ -30,21 +34,21 @@ public class OrgEvent {
 	private String description;
 
 	@NotNull
-	@ManyToOne(fetch = FetchType.EAGER,cascade=CascadeType.ALL)
+	@ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.DETACH)
 	private Organization organization;
 
 	@NotNull
 	private Date time;
 
 	@NotNull
-	@OneToOne(fetch = FetchType.EAGER,cascade=CascadeType.ALL)
+	@OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
 	@JoinColumn(name = "locationId")
 	private Location location;
 
-	@OneToMany(fetch = FetchType.EAGER,cascade=CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Ride> rides;
 
-	@OneToMany(fetch = FetchType.EAGER,cascade=CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<Person> rideRequests;
 
 	public Long getId() {
@@ -71,10 +75,12 @@ public class OrgEvent {
 		this.description = description;
 	}
 
+	@JsonIgnore
 	public Organization getOrganization() {
 		return organization;
 	}
 
+	@JsonProperty
 	public void setOrganization(Organization organization) {
 		this.organization = organization;
 	}
@@ -110,7 +116,42 @@ public class OrgEvent {
 	public void setRideRequests(List<Person> rideRequests) {
 		this.rideRequests = rideRequests;
 	}
-	
-	
+
+	public boolean addRideRequest(Person person) {
+		for (Person tmpPerson : rideRequests) {
+			if (person.getPersonId().equals(tmpPerson.getPersonId())) {
+				return false;
+			}
+		}
+		for (Ride ride : rides) {
+			if (ride.getDriver().getPersonId().equals(person.getPersonId())) {
+				return false;
+			}
+			for (Person tmpPerson : ride.getPassengers()) {
+				if (tmpPerson.getPersonId().equals(person.getPersonId())) {
+					return false;
+				}
+			}
+		}
+		rideRequests.add(person);
+		return true;
+	}
+
+	public void offerRide(Person driver, Person passenger) {
+		Ride ride = null;
+		for (Ride tmpRide : rides) {
+			if (tmpRide.getDriver().getEmail().equals(driver.getEmail())) {
+				ride = tmpRide;
+				if (!ride.hasPassengers(passenger)) {
+					ride.getPassengers().add(passenger);
+				}
+				break;
+			}
+		}
+		if (ride == null) {
+			ride = new Ride(driver, passenger);
+		}
+		this.rideRequests.remove(passenger);
+	}
 
 }

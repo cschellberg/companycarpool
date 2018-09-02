@@ -15,21 +15,21 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
 @Entity
-@Table(name="organization")
+@Table(name = "organization")
 public class Organization {
 
-    @Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-    @NotNull
-    @Column(unique=true)
-    private String name;
-   
-    private String description;
- 
-    @OneToMany(fetch = FetchType.EAGER,cascade=CascadeType.ALL, orphanRemoval = true)
-    private List<OrgEvent> events;
+	@NotNull
+	@Column(unique = true)
+	private String name;
+
+	private String description;
+
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = false)
+	private List<OrgEvent> events;
 
 	public Long getId() {
 		return id;
@@ -62,5 +62,10 @@ public class Organization {
 	public void setEvents(List<OrgEvent> events) {
 		this.events = events;
 	}
-    
+
+	public void removeEvent(OrgEvent event) {
+		events.remove(event);
+
+	}
+
 }

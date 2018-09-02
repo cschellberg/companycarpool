@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
@@ -13,6 +14,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -25,10 +27,14 @@ import org.junit.Test;
 
 import com.eligaapps.companycarpool.controllers.PersonController;
 import com.eligaapps.companycarpool.model.Location;
+import com.eligaapps.companycarpool.model.OrgEvent;
 import com.eligaapps.companycarpool.model.Organization;
 import com.eligaapps.companycarpool.model.Person;
 import com.eligaapps.companycarpool.types.ROLE;
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class EndpointTests {
 
@@ -78,14 +84,8 @@ public class EndpointTests {
 			person.setEmail(TEST_EMAIL);
 			person.setPhoneNumber("4846883222");
 			person.setRole(ROLE.admin);
-			Location location = new Location();
-			location.setStreet("407 Krams Ave");
-			location.setCity("Philadelphia");
-			location.setState("Pa");
-			location.setCountry("USA");
-			location.setLatitude(12.4);
-			location.setLongitude(-34.0);
-			person.setLocation(location);
+
+			person.setLocation(getLocation());
 			httpPost.addHeader("accept", "application/json");
 			httpPost.addHeader("content-type", "application/json");
 			Gson gson = new Gson();
@@ -103,6 +103,17 @@ public class EndpointTests {
 		} catch (Exception ex) {
 			System.out.println(ex);
 		}
+	}
+	
+	private static Location getLocation(){
+		Location location = new Location();
+		location.setStreet("407 Krams Ave");
+		location.setCity("Philadelphia");
+		location.setState("Pa");
+		location.setCountry("USA");
+		location.setLatitude(12.4);
+		location.setLongitude(-34.0);
+		return location;
 	}
 
 	@Test
@@ -164,12 +175,31 @@ public class EndpointTests {
     	HttpPost httpPost = new HttpPost(host + "/organization");
     	httpPost.addHeader("accept", "application/json");
 		httpPost.addHeader("content-type", "application/json");
-		Gson gson = new Gson();
+		Gson gson = new GsonBuilder().addDeserializationExclusionStrategy(new ExclusionStrategy(){
+
+			@Override
+			public boolean shouldSkipField(FieldAttributes fa) {
+				 String className = fa.getDeclaringClass().getName();
+			        String fieldName = fa.getName();
+			        return 
+			            className.equals("com.eligaapps.companycarpool.model.OrgEvent")
+			                && fieldName.equals("organization");
+			}
+
+			@Override
+			public boolean shouldSkipClass(Class<?> clazz) {
+				// TODO Auto-generated method stub
+				return false;
+			}
+			
+		})
+		        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+		        .create();
 		String jsonStr = gson.toJson(organization);
 		HttpEntity entity = new StringEntity(jsonStr);
 		httpPost.setEntity(entity);
 		HttpResponse response = client.execute(httpPost);
-		httpPost.releaseConnection();
+    	
 		String organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
 		HttpGet httpGet=new HttpGet(organizationUri);
 		response=client.execute(httpGet);
@@ -177,8 +207,85 @@ public class EndpointTests {
 		String responseText = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
         organization=gson.fromJson(responseText, Organization.class);
         assertEquals(TEST_ORGANIZATION, organization.getName());
-	    httpGet.releaseConnection();
+        httpGet.releaseConnection();
+        
+		httpPost = new HttpPost(host + "/orgEvent");
+    	httpPost.addHeader("accept", "application/json");
+		httpPost.addHeader("content-type", "application/json");
+		OrgEvent orgEvent=new OrgEvent();
+		orgEvent.setOrganization(organization);
+		orgEvent.setName("Devotional");
+		orgEvent.setTime(new Date());
+		orgEvent.setLocation(getLocation());
+		jsonStr = gson.toJson(orgEvent);
+		entity = new StringEntity(jsonStr);
+		httpPost.setEntity(entity);
+		response = client.execute(httpPost);
 
+		
+		httpPost.releaseConnection();
+		organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
+		httpGet=new HttpGet(organizationUri);
+		response=client.execute(httpGet);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		responseText = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
+        organization=gson.fromJson(responseText, Organization.class);
+        assertEquals(TEST_ORGANIZATION, organization.getName());
+        assertTrue(organization.getEvents().size() > 0);
+        assertEquals("Devotional",organization.getEvents().get(0).getName());
+	    httpGet.releaseConnection();
+	    
+		httpPost = new HttpPost(host + "/addRideRequest");
+		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+		urlParameters.add(new BasicNameValuePair("orgEventId", organization.getEvents().get(0).getId().toString()));
+		urlParameters.add(new BasicNameValuePair("email", TEST_EMAIL));
+		httpPost.setEntity(new UrlEncodedFormEntity(urlParameters));
+		response = client.execute(httpPost);
+		httpPost.releaseConnection();
+		
+		httpPost.releaseConnection();
+		organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
+		httpGet=new HttpGet(organizationUri);
+		response=client.execute(httpGet);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		responseText = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
+        organization=gson.fromJson(responseText, Organization.class);
+        assertEquals(TEST_EMAIL,organization.getEvents().get(0).getRideRequests().get(0).getEmail());
+	    httpGet.releaseConnection();
+	    
+		httpPost = new HttpPost(host + "/offerRide");
+		urlParameters = new ArrayList<NameValuePair>();
+		urlParameters.add(new BasicNameValuePair("orgEventId", organization.getEvents().get(0).getId().toString()));
+		urlParameters.add(new BasicNameValuePair("driverEmail", TEST_EMAIL));
+		urlParameters.add(new BasicNameValuePair("passengerEmail", TEST_EMAIL));
+		httpPost.setEntity(new UrlEncodedFormEntity(urlParameters));
+		response = client.execute(httpPost);
+		httpPost.releaseConnection();
+	    
+		
+		httpPost.releaseConnection();
+		organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
+		httpGet=new HttpGet(organizationUri);
+		response=client.execute(httpGet);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		responseText = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
+        organization=gson.fromJson(responseText, Organization.class);
+        assertTrue(organization.getEvents().get(0).getRideRequests().isEmpty());
+        assertEquals(TEST_EMAIL,organization.getEvents().get(0).getRides().get(0).getDriver().getEmail());
+	    httpGet.releaseConnection();
+	    
+	    HttpDelete httpDelete= new HttpDelete(host + "/orgEvent/"+organization.getEvents().get(0).getId());
+        client.execute(httpDelete);
+        httpDelete.releaseConnection();
+        
+        organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
+		httpGet=new HttpGet(organizationUri);
+		response=client.execute(httpGet);
+		assertEquals(200, response.getStatusLine().getStatusCode());
+		responseText = IOUtils.toString(response.getEntity().getContent(), Charset.defaultCharset());
+        organization=gson.fromJson(responseText, Organization.class);
+        assertEquals(TEST_ORGANIZATION, organization.getName());
+        assertTrue(organization.getEvents().size() == 0);
     	
     }
 	
