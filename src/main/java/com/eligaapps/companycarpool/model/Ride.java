@@ -1,5 +1,6 @@
 package com.eligaapps.companycarpool.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -23,13 +24,13 @@ public class Ride {
     @GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
     
-	@OneToOne(fetch = FetchType.EAGER,cascade=CascadeType.ALL)
+	@OneToOne(fetch = FetchType.EAGER,cascade=CascadeType.DETACH)
 	@JoinColumn(name = "personId")
     private Person driver;
     
 
-	@OneToMany(fetch = FetchType.EAGER,cascade=CascadeType.ALL, orphanRemoval = true)
-    private List<Person> passengers;
+	@OneToMany(fetch = FetchType.EAGER,cascade=CascadeType.DETACH)
+    private List<Person> passengers=new ArrayList<Person>();
     
 	public Ride(){
 		

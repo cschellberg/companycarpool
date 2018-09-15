@@ -28,7 +28,7 @@ public class Organization {
 
 	private String description;
 
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = false)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<OrgEvent> events;
 
 	public Long getId() {

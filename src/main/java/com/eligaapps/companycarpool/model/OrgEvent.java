@@ -45,10 +45,10 @@ public class OrgEvent {
 	@JoinColumn(name = "locationId")
 	private Location location;
 
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
 	private List<Ride> rides;
 
-	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(fetch = FetchType.EAGER, cascade = CascadeType.DETACH)
 	private List<Person> rideRequests;
 
 	public Long getId() {
@@ -150,6 +150,7 @@ public class OrgEvent {
 		}
 		if (ride == null) {
 			ride = new Ride(driver, passenger);
+			rides.add(ride);
 		}
 		this.rideRequests.remove(passenger);
 	}
