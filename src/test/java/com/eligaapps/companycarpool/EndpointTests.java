@@ -1,6 +1,7 @@
 package com.eligaapps.companycarpool;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
@@ -128,87 +129,73 @@ public class EndpointTests {
 	}
 
 	@Test
-    public void organizationTest () throws Exception{
-    	client = httpClientBuilder.build();
-    	login(client,TEST_EMAIL,TEST_PASSWORD);
-    	Organization organization=new Organization();
-    	organization.setName(TEST_ORGANIZATION);
-    	
-		Gson gson = new GsonBuilder().addDeserializationExclusionStrategy(new ExclusionStrategy(){
+	public void organizationTest() throws Exception {
+		client = httpClientBuilder.build();
+		login(client, TEST_EMAIL, TEST_PASSWORD);
+		Organization organization = new Organization();
+		organization.setName(TEST_ORGANIZATION);
 
-			@Override
-			public boolean shouldSkipField(FieldAttributes fa) {
-				 String className = fa.getDeclaringClass().getName();
-			        String fieldName = fa.getName();
-			        return 
-			            className.equals("com.eligaapps.companycarpool.model.OrgEvent")
-			                && fieldName.equals("organization");
-			}
+		Gson gson = TestUtils.getGson();
 
-			@Override
-			public boolean shouldSkipClass(Class<?> clazz) {
-				// TODO Auto-generated method stub
-				return false;
-			}
-			
-		})
-		        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-		        .create();
 		String jsonStr = gson.toJson(organization);
 		HttpUtils.doPost(client, host + "/organization", jsonStr, HttpUtils.getJSONHeaders(), null);
-    	
-		String organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
-		String responseText = HttpUtils.doGet(client, organizationUri, 200);
-        organization=gson.fromJson(responseText, Organization.class);
-        assertEquals(TEST_ORGANIZATION, organization.getName());
-        
- 		OrgEvent orgEvent=new OrgEvent();
+
+		organization = HttpUtils.getOrganization(client,
+				host + "/organization/" + URLEncoder.encode(TEST_ORGANIZATION, "UTF-8"), gson);
+		assertEquals(TEST_ORGANIZATION, organization.getName());
+
+		OrgEvent orgEvent = new OrgEvent();
 		orgEvent.setOrganization(organization);
 		orgEvent.setName("Devotional");
 		orgEvent.setTime(new Date());
 		orgEvent.setLocation(getLocation());
 		jsonStr = gson.toJson(orgEvent);
-		HttpUtils.doPost(client,host + "/orgEvent",jsonStr,HttpUtils.getJSONHeaders(),null);
+		HttpUtils.doPost(client, host + "/orgEvent", jsonStr, HttpUtils.getJSONHeaders(), null);
 
-		organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
-		responseText = HttpUtils.doGet(client, organizationUri, 200);
-        organization=gson.fromJson(responseText, Organization.class);
-        assertEquals(TEST_ORGANIZATION, organization.getName());
-        assertTrue(organization.getEvents().size() > 0);
-        assertEquals("Devotional",organization.getEvents().get(0).getName());
+		organization = HttpUtils.getOrganization(client,
+				host + "/organization/" + URLEncoder.encode(TEST_ORGANIZATION, "UTF-8"), gson);
+		assertEquals(TEST_ORGANIZATION, organization.getName());
+		assertTrue(organization.getEvents().size() > 0);
+		assertEquals("Devotional", organization.getEvents().get(0).getName());
 
 		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
 		urlParameters.add(new BasicNameValuePair("orgEventId", organization.getEvents().get(0).getId().toString()));
 		urlParameters.add(new BasicNameValuePair("email", TEST_EMAIL));
-		HttpUtils.doPost(client,host + "/addRideRequest",urlParameters,HttpUtils.getFormHeaders(),null);
+		HttpUtils.doPost(client, host + "/addRideRequest", urlParameters, HttpUtils.getFormHeaders(), null);
 
-		organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
-		responseText = HttpUtils.doGet(client, organizationUri, 200);
-        organization=gson.fromJson(responseText, Organization.class);
-        assertEquals(TEST_EMAIL,organization.getEvents().get(0).getRideRequests().get(0).getEmail());
-	    
-		urlParameters = new ArrayList<NameValuePair>();
-		urlParameters.add(new BasicNameValuePair("orgEventId", organization.getEvents().get(0).getId().toString()));
-		urlParameters.add(new BasicNameValuePair("driverEmail", TEST_EMAIL));
-		urlParameters.add(new BasicNameValuePair("passengerEmail", TEST_EMAIL));
-		HttpUtils.doPost(client, host + "/offerRide",urlParameters, HttpUtils.getFormHeaders(), null);
-	    		
-		organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
-		responseText = HttpUtils.doGet(client, organizationUri, 200);
-        organization=gson.fromJson(responseText, Organization.class);
-//        assertTrue(organization.getEvents().get(0).getRideRequests().isEmpty());
-//        assertEquals(TEST_EMAIL,organization.getEvents().get(0).getRides().get(0).getDriver().getEmail());
-	    
-	    String deleteUrl=host + "/orgEvent/"+organization.getEvents().get(0).getId();
-        HttpUtils.doDelete(client, deleteUrl, 200);
-        
-        organizationUri=host+"/organization/"+URLEncoder.encode(TEST_ORGANIZATION, "UTF-8");
-		responseText = HttpUtils.doGet(client, organizationUri, 200);
-        organization=gson.fromJson(responseText, Organization.class);
-        assertEquals(TEST_ORGANIZATION, organization.getName());
-        assertTrue(organization.getEvents().size() == 0);
-    	
-    }
+		organization = HttpUtils.getOrganization(client,
+				host + "/organization/" + URLEncoder.encode(TEST_ORGANIZATION, "UTF-8"), gson);
+		assertEquals(TEST_EMAIL, organization.getEvents().get(0).getRideRequests().get(0).getEmail());
+
+		HttpUtils.offerRide(client, host + "/offerRide", organization.getEvents().get(0).getId(), TEST_EMAIL,
+				TEST_EMAIL);
+
+		organization = HttpUtils.getOrganization(client,
+				host + "/organization/" + URLEncoder.encode(TEST_ORGANIZATION, "UTF-8"), gson);
+		assertTrue(organization.getEvents().get(0).getRideRequests().isEmpty());
+		assertEquals(TEST_EMAIL, organization.getEvents().get(0).getRides().get(0).getDriver().getEmail());
+
+		HttpUtils.offerRide(client, host + "/offerRide", organization.getEvents().get(0).getId(), TEST_EMAIL,
+				TEST_EMAIL);
+
+		
+		HttpUtils.cancelRequest(client, host + "/cancelRequest", organization.getEvents().get(0).getId(), TEST_EMAIL);
+		organization = HttpUtils.getOrganization(client,
+				host + "/organization/" + URLEncoder.encode(TEST_ORGANIZATION, "UTF-8"), gson);
+		assertTrue(organization.getEvents().get(0).getRideRequests().isEmpty());
+		assertFalse(TEST_EMAIL, organization.getEvents().get(0).getRides().isEmpty());
+
+		
+		
+		String deleteUrl = host + "/orgEvent/" + organization.getEvents().get(0).getId();
+		HttpUtils.doDelete(client, deleteUrl, 200);
+
+		organization = HttpUtils.getOrganization(client,
+				host + "/organization/" + URLEncoder.encode(TEST_ORGANIZATION, "UTF-8"), gson);
+		assertEquals(TEST_ORGANIZATION, organization.getName());
+		assertTrue(organization.getEvents().size() == 0);
+
+	}
 
 	@Test
 	public void zlockoutTest() throws Exception {

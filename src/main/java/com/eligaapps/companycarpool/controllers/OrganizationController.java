@@ -83,7 +83,7 @@ public class OrganizationController {
 	}
 
 	@RequestMapping(value = "/offerRide", method = RequestMethod.POST)
-	public @ResponseBody Result addRideRequest(@RequestParam Long orgEventId, @RequestParam String driverEmail, @RequestParam String passengerEmail) {
+	public @ResponseBody Result offerRide(@RequestParam Long orgEventId, @RequestParam String driverEmail, @RequestParam String passengerEmail) {
 		try {
 			Optional<OrgEvent> optOrgEvent = orgEventRepository.findById(orgEventId);
 			if (optOrgEvent.isPresent()) {
@@ -101,6 +101,45 @@ public class OrganizationController {
 		}
 	}
 
+	
+	@RequestMapping(value = "/cancelOffer", method = RequestMethod.POST)
+	public @ResponseBody Result cancelOffer(@RequestParam Long orgEventId, @RequestParam String driverEmail) {
+		try {
+			Optional<OrgEvent> optOrgEvent = orgEventRepository.findById(orgEventId);
+			if (optOrgEvent.isPresent()) {
+				OrgEvent orgEvent = optOrgEvent.get();
+				Person driver = userRepository.findByEmail(driverEmail);
+				if (driver != null) {
+					orgEvent.cancelOffer(driver);
+				    orgEventRepository.save(orgEvent);
+				}
+			}
+			return new Result(0, "success");
+		} catch (Exception ex) {
+			return new Result(1, ex.getMessage());
+		}
+	}
+	
+	@RequestMapping(value = "/cancelRequest", method = RequestMethod.POST)
+	public @ResponseBody Result cancelRequest(@RequestParam Long orgEventId, @RequestParam String passengerEmail) {
+		try {
+			Optional<OrgEvent> optOrgEvent = orgEventRepository.findById(orgEventId);
+			if (optOrgEvent.isPresent()) {
+				OrgEvent orgEvent = optOrgEvent.get();
+				Person passenger= userRepository.findByEmail(passengerEmail);
+				if (passenger != null) {
+					orgEvent.cancelRequest(passenger);
+				    orgEventRepository.save(orgEvent);
+				}
+			}
+			return new Result(0, "success");
+		} catch (Exception ex) {
+			return new Result(1, ex.getMessage());
+		}
+	}
+
+	
+	
 	@RequestMapping(value = "/orgEvent/{id:.+}", method = RequestMethod.DELETE)
 	public @ResponseBody Result deleteOrgEvent(@PathVariable("id") Long id) {
 		try {

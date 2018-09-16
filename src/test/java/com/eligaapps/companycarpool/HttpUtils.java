@@ -2,7 +2,9 @@ package com.eligaapps.companycarpool;
 
 import static org.junit.Assert.assertEquals;
 
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,10 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+
+import com.eligaapps.companycarpool.model.Organization;
+import com.google.gson.Gson;
 
 public class HttpUtils {
 
@@ -74,19 +80,50 @@ public class HttpUtils {
 		}
 
 	}
-	
-	public static void doDelete(CloseableHttpClient client, String url,Integer expectedCode)throws Exception{
-		HttpDelete httpDelete= new HttpDelete(url);
-		try{
-        HttpResponse response= client.execute(httpDelete);
-		if (expectedCode != null) {
-			assertEquals(expectedCode.intValue(), response.getStatusLine().getStatusCode());
+
+	public static void doDelete(CloseableHttpClient client, String url, Integer expectedCode) throws Exception {
+		HttpDelete httpDelete = new HttpDelete(url);
+		try {
+			HttpResponse response = client.execute(httpDelete);
+			if (expectedCode != null) {
+				assertEquals(expectedCode.intValue(), response.getStatusLine().getStatusCode());
+			}
+			httpDelete.releaseConnection();
+		} finally {
+			httpDelete.releaseConnection();
 		}
-        httpDelete.releaseConnection();
-	    } finally{
-	    	httpDelete.releaseConnection();
-	    }
-        
+
+	}
+
+	public static void offerRide(CloseableHttpClient client, String uri, Long orgEventId, String driverEmail,
+			String passengerEmail) throws Exception {
+		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+		urlParameters.add(new BasicNameValuePair("orgEventId", orgEventId.toString()));
+		urlParameters.add(new BasicNameValuePair("driverEmail", driverEmail));
+		urlParameters.add(new BasicNameValuePair("passengerEmail", passengerEmail));
+		doPost(client, uri, urlParameters, HttpUtils.getFormHeaders(), null);
+	}
+
+	public static void cancelOffer(CloseableHttpClient client, String uri, Long orgEventId, String driverEmail)
+			throws Exception {
+		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+		urlParameters.add(new BasicNameValuePair("orgEventId", orgEventId.toString()));
+		urlParameters.add(new BasicNameValuePair("driverEmail", driverEmail));
+		doPost(client, uri, urlParameters, HttpUtils.getFormHeaders(), null);
+	}
+
+	public static void cancelRequest(CloseableHttpClient client, String uri, Long orgEventId, String passengerEmail)
+			throws Exception {
+		List<NameValuePair> urlParameters = new ArrayList<NameValuePair>();
+		urlParameters.add(new BasicNameValuePair("orgEventId", orgEventId.toString()));
+		urlParameters.add(new BasicNameValuePair("passengerEmail", passengerEmail));
+		doPost(client, uri, urlParameters, HttpUtils.getFormHeaders(), null);
+	}
+	
+	public static Organization getOrganization(CloseableHttpClient client, String uri, Gson gson) throws Exception {
+		String responseText = doGet(client, uri, 200);
+		Organization organization = gson.fromJson(responseText, Organization.class);
+		return organization;
 	}
 
 	public static Map<String, String> getJSONHeaders() {
@@ -101,4 +138,5 @@ public class HttpUtils {
 		headers.put("content-type", "application/x-www-form-urlencoded");
 		return headers;
 	}
+
 }

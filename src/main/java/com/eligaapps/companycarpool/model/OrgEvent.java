@@ -155,4 +155,34 @@ public class OrgEvent {
 		this.rideRequests.remove(passenger);
 	}
 
+	public void cancelOffer(Person driver) {
+		for ( Ride ride:rides){
+			if ( ride.getDriver().getEmail().equals(driver.getEmail())){
+				for ( Person passenger: ride.getPassengers()){
+					rideRequests.add(passenger);
+				}
+				rides.remove(ride);
+				return;
+			}
+		}
+	}
+
+	public void cancelRequest(Person passenger) {
+		for ( Person tmpPassenger: rideRequests){
+			if ( tmpPassenger.getEmail().equals(passenger.getEmail())){
+				rideRequests.remove(tmpPassenger);
+				return;
+			}
+		}
+		for ( Ride ride: rides){
+			for ( Person tmpPerson:ride.getPassengers()){
+				if (tmpPerson.getEmail().equals(passenger.getEmail())){
+					ride.getPassengers().remove(tmpPerson);
+					return;
+				}
+			}
+		}
+		
+	}
+
 }
